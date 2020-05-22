@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QiitaAPI</title>
+  <link rel="stylesheet" type="text/css" href="css/reset.css" />
+  <link rel="stylesheet" type="text/css" href="css/sanitize.css" />
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+  <script>
+    $(function () {
+      var no = 1;
+      var num = 1;
+
+      //キャッシュを無効にする
+      $.ajaxSetup({
+        cahe: false
+      });
+      let arry = [];
+      let obj;
+      let a;
+      let r, t;
+      let u;
+      let saveArticle = function () {
+        $.get('http://qiita.com/api/v2/items?',
+          { page: num, per_page: "1" }
+        ).done(function (data) {
+          $.each(data, function (i, v) {
+            a = $("<a>").attr("href", v.url).text(`${num}-` + v.title);
+            //liタグオブジェクトを作って先ほど作ったaをappend
+            $("#js_save_area").append($(`<li>`).append(a));
+            // グローバル変数で無理やり外に出す
+            r = v.url;
+            t = v.title;
+          })
+        });
+      };
+
+
+      // 今まで保存したことがある個数を記憶//
+      let number = 0;
+      if (localStorage.getItem('number')) {
+        number = localStorage.getItem('number');
+      }
+      /////////////////////////////
+
+
+      // お気に入りボタンを押すと変数に格納
+      $("#like").on('click', function () {
+        u = { url: r, title: t };
+        obj = u;
+        let f = Number(number);
+        a = $("<a>").attr("href", r).text(`${f + 1}-` + t);  //numberはstring型
+        $("#choised_article").append($(`<li>`).attr('id', f + 1).append(a));
+        const jsonData = JSON.stringify(obj);
+        localStorage.setItem(number, jsonData);
+        number++;
+        setItems(number);
+      });
+
+      let setItems = (numbers) => {
+        localStorage.setItem("number", numbers);
+      }
+      setItems(number);
+      // 現在自分が何個目の記事を扱っているか基準とする物をLocalStorageに保存
+      let k = 1;
+      // kiziは全て合わせて500記事まで操作可能
+      let kizi = 500;
+      for (let j = 0; j < kizi; j++) {
+        if (localStorage.getItem(j)) {
+          const jsonData = localStorage.getItem(j);
+          arry = JSON.parse(jsonData);
+          console.log('A', arry.url);
+          // JSONの中の配列を表示
+          const a = $("<a>").attr("href", arry.url).text(`${j + 1}-` + arry.title);
+          $("#choised_article").append($(`<li>`).attr('id', j + 1).append(a));
+          k++;
+        }
+      }
+
+      let check1 = () => {
+        if (num <= 1) {
+          $("#prev").prop('disabled', true);
+        } else {
+          $("#prev").prop('disabled', false);
+        }
+      }
+
+      let check10 = () => {
+        if (num < 10) {
+          $("#prev_10").prop('disabled', true);
+          console.log(num);
+        } else {
+          $("#prev_10").prop('disabled', false);
+        }
+      }
+      // 10記事戻るボタン
+      $("#prev_10").click(function () {
+        $("#js_save_area").children().hide();
+        num -= 10;
+        saveArticle();
+        check1();
+        check10();
+      });
+
+      // 1記事戻るボタン
+      $("#prev").click(function () {
+        $("#js_save_area").children().hide();
+        num--;
+        saveArticle();
+        check1();
+        check10();
+      });
+      // 1記事進むボタン
+      $("#next").click(function () {
+        $("#js_save_area").children().hide();
+        num++;
+        console.log(num);
+        saveArticle();
+        check1();
+        check10();
+      });
+      // 10記事進むボタン
+      $("#next_10").click(function () {
+        $("#js_save_area").children().hide();
+        num += 10;
+        saveArticle();
+        check1();
+        check10();
+      });
+
+      //番号を入れてサーチボタンを押すとlocalStorageとその番号のリストを表示する
+      let e;
+      $("#article_search").click(function () {
+        e = $('#article_number').val();
+        console.log('e', e);
+        $("#js_save_area").children().hide();
+        num = e;
+        saveArticle();
+        check1();
+        check10();
+      });
+
+      // locaStorageとお気に入りリストを全て消す
+      $("#clear").click(function () {
+        if (confirm('全て消しますか？') == true) {
+          for (let l = 0; l < kizi; l++) {
+
+            if (localStorage.getItem(l)) {
+              localStorage.removeItem(l);
+              $("#choised_article").children(`#${l + 1}`).hide();
+            }
+          }
+          number = 0;
+          setItems(number);
+        }
+      });
+
+
+      //番号を入れて削除ボタンを押すとlocalStorageとその番号のリストを消す      
+      let d;
+      $("#deleat").click(function () {
+        d = $('#number').val();
+        $("#choised_article").children(`#${d}`).hide();
+        localStorage.removeItem(d - 1);
+        $('#number').val("");
+      });
+      //番号を入れて削除ボタンを押すとlocalStorageとその番号のリストを表示する
+      $("#search").click(function () {
+        d = $('#number').val();
+        console.log('d', d);
+        const a = $("<a>").attr("href", arry.url).text(`${d}-` + arry.title);
+        $("#searched_article").append($(`<li>`).attr('id', d).append(a));
+        $('#number').val("");
+      });
+
+      let m = 0;
+      // // 20件づつ表示する関数
+      var getArticle = function () {
+        $.get('http://qiita.com/api/v2/items?',
+          { page: no, per_page: "20" }
+        ).done(function (data) {
+          $.each(data, function (i, v) {
+            //aタグオブジェクトを作ってhrefにv.valをセット
+            //v.titleはテキスト形式で表示
+            const a = $("<a>").attr("href", v.url).text(`${m + i + 1}-` + v.title);
+            //liタグオブジェクトを作って先ほど作ったaをappend
+            //それを#js_append_areaに追加
+            $("#js_append_area").append($(`<li>`).append(a));
+          })
+          m += 20;
+        });
+      }
+
+      // 記事を保存するための関数呼び出し
+      saveArticle();
+
+      // //最初の20件を表示
+      getArticle();
+      //ボタンを押すごとに次の20件を表示
+      $('#next_20').click(function () {
+        ++no;
+        getArticle();
+      });
+    });
+  </script>
+</head>
+
+
+<body>
+  <div>表示したい記事の番号を入れて🕵️‍♀️を押してください</div>
+  <main>
+    ボタンを操作して記事番号を合わせてください<br>
+    <button id="prev_10" class="btn-denim">10個戻る</button>
+    <button id="prev" class="btn-denim">戻る</button>
+    <button id="next" class="btn-denim">進む</button>
+    <button id="next_10" class="btn-denim">10個進む</button>
+    <input type="text" id="article_number" class="number_area" placeholder="記事の番号">
+    <button id="article_search" class="btn-denim">🕵️‍♀️[search]</button>
+    <div id="js_save_area">
+    </div>
+    ↑の記事を保存するときは，お気に入りボタンを押してください→
+    <button id="like" class="btn-denim">お気に入り</button>
+  </main>
+
+  <p>保存したリスト</p>
+
+  <ul id="searched_article"></ul>
+  <div>消したい記事の番号を入れて削除を押してください
+    <ul id="choised_article">
+      <input type="text" id="number" class="number_area" placeholder="記事の番号">
+      <button id="search" class="btn-denim">🕵️‍♀️[search]</button>
+      <button id="deleat" class="btn-denim">[削除]</button>
+      <button id="clear" class="btn-denim">[Clear]</button>
+  </div>
+
+
+  <div>下に20件づつ記事が表示されます</div>
+  <ul id="js_append_area"></ul>
+  <a href="#" id="next_20">次の20件を表示</a>
+
+
+  </ul>
+</body>
+
+</html>
